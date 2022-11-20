@@ -23,11 +23,21 @@ bool collisions(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2);
 void drawlifeBar(int widthlives);
 void resetGame();
 void drawHeart(int x, int y);
+bool powerUp(int xrandom, int yrandom, int wL, int x2, int y2, int w2, int h2);
+void drawspaceship(int red, int green, int blue);
+void drawPowerUp(int xrandom, int yrandom);
+void powerUpAquiredTimer(int value);
+void powerUpTimer(int value);
+void powerUpTimeUp(int value);
+void disappear(int value);
 void Display();
 //-----------------
 
 //  Global Variables
 int selectedBar = 0; // used to determine which bar has the mouse currently over it
+int xrandom = 0;
+int yrandom = 0;
+int wL = 50;//length and width of power up
 int heightBullet = 10;
 int widthBullet = 8;
 int heightSpaceShip = 80;
@@ -47,11 +57,18 @@ int originPositionEnemyY = 640;
 int translationEnemyX = 0;
 int widthlives = 500;
 int deductionEnemyLives = 50;
+bool powerUpAcquired= false;
 bool a, w, s, d = false;
 bool reachedBorder = false;
 bool gameWon = false;
 bool resetGame2 = false;
 int playerLives = 3;
+bool touching = false;
+int red = 0;
+int green = 0;
+int blue = 1;
+bool timeUp = false;
+bool istherePowerUp = false;
 class Point {
 public:int x; int y;
       int getx() {
@@ -70,13 +87,14 @@ void main(int argc, char** argr) {
     glutInitWindowSize(800, 800);
     glutInitWindowPosition(150, 150);
     collisions(0,0,10,10,5,5,2,2);
-    glutCreateWindow("Robotic Arm");
+    glutCreateWindow("chicken invadors bas morhaka shwaya");
     glutDisplayFunc(Display);
-    
     glutMouseFunc(Mouse);       // sets the Mouse handler function; called when a mouse button is clicked
    // glutTimerFunc(0, Timer, 0); // sets the Timer handler function; which runs every `Threshold` milliseconds (1st argument)
     EnemyTimer(0);
     Timer(0);
+    powerUpTimer(0);
+    powerUpTimeUp(0);
     glutKeyboardFunc(KeyPressed);      // sets the Keyboard handler function; called when a key is pressed
     glutKeyboardUpFunc(KeyReleased);  // sets the KeyboardUp handler function; called when a key is released
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
@@ -119,9 +137,17 @@ void Mouse(int button, int state, int x, int y) {
     }
     glutPostRedisplay();
 }
+void disactivatePowerUp(int value) {
+    powerUpAcquired = false;
+    blue = 1;
+    red = 0;
+    green = 0;
+    drawspaceship(red, green, blue);
 
+}
 void Timer(int value) {
     // set the ball's Y coordinate to a random number between 10 and 780 (since the window's height is 800)
+
     if (!gameWon) {
         if (translationEnemyX > -335 && reachedBorder == false) translationEnemyX -= 5;
         if (translationEnemyX < -330) reachedBorder = true;
@@ -139,11 +165,19 @@ void Timer(int value) {
         int y2 = originPositionEnemyY - (heightEnemy / 2);
 
         bool x = collisions(x1, y1, widthSpaceShip, heightSpaceShip, x2, y2, widthEnemy, heightEnemy);
-
+        bool power = powerUp(xrandom, yrandom,  wL,  x1,  y1, widthSpaceShip, heightSpaceShip);
+        if (power == true) {
+            powerUpAcquired = true;
+            istherePowerUp = false;
+            blue = 0;
+            red = 1;
+            green = 1;
+            glutTimerFunc(5000, disactivatePowerUp, 0);
+        }
 
         int i = 0;
         for (auto& it : bullets) {
-            if (collisions(it.x, it.y, widthBullet, heightBullet, x2, y2, widthEnemy, heightEnemy) == true) {
+            if (collisions(it.x, it.y, widthBullet, heightBullet, x2, y2, widthEnemy, heightEnemy) == true ) {
                 widthlives -= deductionEnemyLives;
                 bullets.erase(bullets.begin() + i);
             }
@@ -163,7 +197,7 @@ void Timer(int value) {
         }
         i = 0;
         for (auto& it : enemyBullets) {
-            if (collisions(it.x, it.y, widthBullet, heightBullet, x1, y1, widthSpaceShip, heightSpaceShip) == true) {
+            if (collisions(it.x, it.y, widthBullet, heightBullet, x1, y1, widthSpaceShip, heightSpaceShip) == true && powerUpAcquired == false) {
                 playerLives -= 1;
                 enemyBullets.erase(enemyBullets.begin() + i);
             }
@@ -206,25 +240,41 @@ void drawHeart(int x, int y) {
 
 }
 void resetGame() {
-     heightBullet = 10;
-     widthBullet = 8;
-     heightSpaceShip = 80;
-     widthSpaceShip = 120;
-     bLSpaceShipX = 340;
-     bLSpaceShipY = 380;
-     heightEnemy = 200;
-     widthEnemy = 120;
-     bLEnemyX = 340;//Bottom left point of bounding box X coordinate
-     bLEnemyY = 560;//Bottom left point of bounding box Y coordinate
-     translationSpaceshipX = 0;
-     translationSpaceshipY = 0;
-     originPositionSpaceshipX = 400; //x value of origin of spaceship
-     originPositionSpaceshipY = 402.5;//Y value of origin of spaceship
-     originPositionEnemyX = 400;
-     originPositionEnemyY = 640;
-     translationEnemyX = 0;
-     widthlives = 500;
-     deductionEnemyLives = 50;
+    selectedBar = 0; // used to determine which bar has the mouse currently over it
+    xrandom = rand() % 700;
+    yrandom = rand() % 700;
+    wL = 50;//length and width of power up
+    heightBullet = 10;
+    widthBullet = 8;
+    heightSpaceShip = 80;
+    widthSpaceShip = 120;
+    bLSpaceShipX = 340;
+    bLSpaceShipY = 380;
+    heightEnemy = 200;
+    widthEnemy = 120;
+    bLEnemyX = 340;//Bottom left point of bounding box X coordinate
+    bLEnemyY = 560;//Bottom left point of bounding box Y coordinate
+    translationSpaceshipX = 0;
+    translationSpaceshipY = 0;
+    originPositionSpaceshipX = 400; //x value of origin of spaceship
+    originPositionSpaceshipY = 402.5;//Y value of origin of spaceship
+    originPositionEnemyX = 400;
+    originPositionEnemyY = 640;
+    translationEnemyX = 0;
+    widthlives = 500;
+    deductionEnemyLives = 50;
+    powerUpAcquired = false;
+    a, w, s, d = false;
+    reachedBorder = false;
+    gameWon = false;
+    resetGame2 = false;
+    playerLives = 3;
+    touching = false;
+    red = 0;
+    green = 0;
+    blue = 1;
+    timeUp = false;
+    istherePowerUp = false;
      bullets.clear();
      enemyBullets.clear();
 }
@@ -238,6 +288,38 @@ void EnemyTimer(int value)
         enemyBullets.push_back(bulletPoint);
         glutTimerFunc(1000, EnemyTimer, 0);
     }
+
+}
+void powerUpAquiredTimer(int value) {
+    if (touching == true && istherePowerUp== true) {
+        powerUpAcquired = false;
+        istherePowerUp = false;
+    }
+    glutTimerFunc(1000, powerUpAquiredTimer, 0);
+
+}
+void powerUpTimer(int value) {
+    if (!istherePowerUp) {
+        istherePowerUp = true;
+        xrandom = rand() % 450 + 150;
+        yrandom = rand() % 450 + 150;
+        glutTimerFunc(5000, disappear, 0);
+    }
+    glutTimerFunc(15000, powerUpTimer, 0);
+
+}
+void powerUpTimeUp(int value) {
+    if (powerUpAcquired == false && istherePowerUp== true) {
+    timeUp = true;
+}
+    glutTimerFunc(100000, powerUpTimeUp, 0);
+
+}
+
+
+void disappear(int value)
+{
+    istherePowerUp = false;
 }
 void drawPartialCircle(int x, int y, int sangle, int eangle ) {
     glPushMatrix();
@@ -247,8 +329,8 @@ void drawPartialCircle(int x, int y, int sangle, int eangle ) {
     glPopMatrix();
 }
 
-void drawspaceship() {
-    glColor3f(0.0f, 0.0f, 1.0f);//blue
+void drawspaceship(int red, int green , int blue) {
+    glColor3f(red, green, blue);//blue
     glBegin(GL_POLYGON);
     glVertex3f(350.0f, 390.0f, 0.0f);
     glVertex3f(350.0f, 415.0f, 0.0f);
@@ -257,14 +339,14 @@ void drawspaceship() {
     glEnd();
     drawPartialCircle(400,400,-90,180);
 
-    glColor3f(0.0f, 0.0f, 1.0f);//blue
+    glColor3f(red, green, blue);//blue
     glBegin(GL_QUADS);
     glVertex3f(395.0f, 400.0f, 0.0f);
     glVertex3f(395.0f, 450.0f, 0.0f);
     glVertex3f(405.0f, 450.0f, 0.0f);
     glVertex3f(405.0f, 400.0f, 0.0f);
     glEnd();
-    glColor3f(0.0f, 1.0f, 1.0f);
+    glColor3f(red, green, blue);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     drawRect(350, 390, 100, 60);//Hit box spaceship
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -314,6 +396,7 @@ void drawEnemy() {
     glVertex3f(400.0f, 750.0f, 0.0f);
     glEnd();
     drawPartialCircle(400, 635, -90, 360);
+    //glBegin(GL_POINTS);s
 
     glColor3f(1.0f, 0.0f, 0.0f);//red
     glBegin(GL_POLYGON);
@@ -329,6 +412,61 @@ void drawEnemy() {
 
 }
 
+void drawPowerUp(int xrandom, int yrandom) {
+    glColor3f(1.0f, 1.0f, 0.0f);//yellow
+    glBegin(GL_POLYGON);
+    glVertex3f(xrandom, yrandom, 0.0f);
+    glVertex3f(xrandom + wL, yrandom, 0.0f);
+    glVertex3f(xrandom + wL, yrandom + wL, 0.0f);
+    glVertex3f(xrandom, yrandom + wL, 0.0f);
+    glEnd();
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    drawRect(xrandom, yrandom, wL, wL);//Hit box enemy
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+
+bool powerUp(int xrandom, int yrandom, int wL, int x2, int y2, int w2, int h2) {
+    int tRpowerUpX = xrandom + wL;
+    int tRpowerUpY = yrandom + wL;
+    int bRspaceshipX = x2 + w2;
+    int tRspaceshipY = y2 + h2;
+
+    if (xrandom < x2 && x2 < tRpowerUpX && yrandom < tRspaceshipY && tRspaceshipY < tRpowerUpY) {
+        powerUpAcquired = true;
+        touching = true;
+    }
+    if (xrandom < bRspaceshipX && bRspaceshipX < tRpowerUpX && yrandom < tRspaceshipY && tRspaceshipY < tRpowerUpY) {
+        powerUpAcquired = true;
+        touching = true;
+    }
+    if (xrandom < x2 && x2 < tRpowerUpX && yrandom < y2 && y2 < tRpowerUpY) {
+        powerUpAcquired = true;
+        touching = true;
+    }
+    if (xrandom < bRspaceshipX && bRspaceshipX < tRpowerUpX && yrandom < y2 && y2 < tRpowerUpY) {
+        powerUpAcquired = true;
+        touching = true;
+    }
+    if (tRpowerUpX < bRspaceshipX && tRpowerUpX > x2 && yrandom < tRspaceshipY && yrandom > y2) {
+        powerUpAcquired = true;
+        touching = true;
+    }
+    if (xrandom < bRspaceshipX && xrandom > x2 && yrandom < tRspaceshipY && yrandom > y2) {
+        powerUpAcquired = true;
+        touching = true;
+    }
+    if (tRpowerUpX > x2 && tRpowerUpX < bRspaceshipX && tRpowerUpY  < tRspaceshipY && tRpowerUpY > y2) {
+        powerUpAcquired = true;
+        touching = true;
+    }
+    if (xrandom > x2 && xrandom < bRspaceshipX && tRpowerUpY > y2 && tRpowerUpY < tRspaceshipY) {
+        powerUpAcquired = true;
+        touching = true;
+    }
+    return powerUpAcquired;
+
+
+}
 bool collisions(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2) {
     bool collided = false;
     int bRenemyX = x1+w1;
@@ -359,9 +497,18 @@ bool collisions(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2) 
 }
 void Display() {
     glClear(GL_COLOR_BUFFER_BIT);
+    
 
- 
     if(!resetGame2){
+        if (istherePowerUp)
+        {
+            drawPowerUp(xrandom, yrandom);
+        }
+        if (istherePowerUp == false && timeUp == false) {
+           
+            
+
+        }
         int xShift = 0;
         for (int i = 0; i < playerLives; i++) {
             drawHeart(120 - xShift, 765);
@@ -371,7 +518,7 @@ void Display() {
         }
     glPushMatrix();
     glTranslatef(translationSpaceshipX, translationSpaceshipY, 0);
-    drawspaceship();
+    drawspaceship(red, green, blue);
     glPopMatrix();
     for (auto& it : bullets) {
 
