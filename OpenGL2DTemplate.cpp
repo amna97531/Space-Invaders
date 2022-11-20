@@ -22,6 +22,7 @@ void EnemyTimer(int value);
 bool collisions(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2);
 void drawlifeBar(int widthlives);
 void resetGame();
+void drawHeart(int x, int y);
 void Display();
 //-----------------
 
@@ -50,6 +51,7 @@ bool a, w, s, d = false;
 bool reachedBorder = false;
 bool gameWon = false;
 bool resetGame2 = false;
+int playerLives = 3;
 class Point {
 public:int x; int y;
       int getx() {
@@ -120,63 +122,89 @@ void Mouse(int button, int state, int x, int y) {
 
 void Timer(int value) {
     // set the ball's Y coordinate to a random number between 10 and 780 (since the window's height is 800)
-    if (!gameWon) { if (translationEnemyX > -335 && reachedBorder == false) translationEnemyX -= 5;
-    if (translationEnemyX < -330) reachedBorder = true;
-    if (reachedBorder == true) translationEnemyX += 5;
-    if (translationEnemyX > 330) reachedBorder = false;
-    int i = 0;
-    for (auto& it : bullets) {
-        it.y += 5;
-    }
-    for (auto& it : enemyBullets) {
-        it.y -= 5;
-    }
-    int x1 = originPositionSpaceshipX + translationSpaceshipX - (widthSpaceShip / 2);
-    int y1 = originPositionSpaceshipY + translationSpaceshipY - (heightSpaceShip / 2);
-    int x2 = originPositionEnemyX + translationEnemyX - (widthEnemy / 2);
-    int y2 = originPositionEnemyY - (heightEnemy / 2);
-    /*printf("%d \n", originPositionSpaceshipY);
-    printf("%d \n", translationSpaceshipY);
-    printf("%d \n", heightSpaceShip);
-
-    printf("%d \n", x1);
-    printf("%d \n", x2);
-    printf("%d \n", y1);
-    printf("%d \n", y2);
-    printf("----------------------------");*/
-
-    bool x= collisions(x1, y1, widthSpaceShip, heightSpaceShip, x2, y2, widthEnemy, heightEnemy);
-    //printf("%s", x ? "true": " ");
-    for (auto& it : bullets) {
-        if (collisions(it.x, it.y, widthBullet, heightBullet, x2, y2, widthEnemy, heightEnemy) == true) {
-            widthlives -= deductionEnemyLives;
-            bullets.erase(bullets.begin() + i);
-
+    if (!gameWon) {
+        if (translationEnemyX > -335 && reachedBorder == false) translationEnemyX -= 5;
+        if (translationEnemyX < -330) reachedBorder = true;
+        if (reachedBorder == true) translationEnemyX += 5;
+        if (translationEnemyX > 330) reachedBorder = false;
+        for (auto& it : bullets) {
+            it.y += 5;
         }
-        else {
-            i++;
+        for (auto& it : enemyBullets) {
+            it.y -= 5;
         }
-       /* printf("%d", widthlives);
+        int x1 = originPositionSpaceshipX + translationSpaceshipX - (widthSpaceShip / 2);
+        int y1 = originPositionSpaceshipY + translationSpaceshipY - (heightSpaceShip / 2);
+        int x2 = originPositionEnemyX + translationEnemyX - (widthEnemy / 2);
+        int y2 = originPositionEnemyY - (heightEnemy / 2);
 
-        printf("%s", "\n------------\n");*/
+        bool x = collisions(x1, y1, widthSpaceShip, heightSpaceShip, x2, y2, widthEnemy, heightEnemy);
 
-        if (widthlives <= 0) {
-            widthlives = 0;
-            printf("%s", "Game Over!");
-            gameWon = true;
-            glClearColor(0, 1, 0, 0);
+
+        int i = 0;
+        for (auto& it : bullets) {
+            if (collisions(it.x, it.y, widthBullet, heightBullet, x2, y2, widthEnemy, heightEnemy) == true) {
+                widthlives -= deductionEnemyLives;
+                bullets.erase(bullets.begin() + i);
+            }
+            else {
+                i++;
+            }
+            /* printf("%d", widthlives);
+
+             printf("%s", "\n------------\n");*/
+
+            if (widthlives <= 0) {
+                widthlives = 0;
+                printf("%s", "Game Over!");
+                gameWon = true;
+                glClearColor(0, 1, 0, 0);
+            }
         }
-    }
-    }
-    
-    
-    // ask OpenGL to recall the display function to reflect the changes on the window
-    glutPostRedisplay();
+        i = 0;
+        for (auto& it : enemyBullets) {
+            if (collisions(it.x, it.y, widthBullet, heightBullet, x1, y1, widthSpaceShip, heightSpaceShip) == true) {
+                playerLives -= 1;
+                enemyBullets.erase(enemyBullets.begin() + i);
+            }
+            else {
+                i++;
+            }
+            if (playerLives <= 0) {
+                printf("%s", "Game Over!");
+                gameWon = true;
+                glClearColor(1, 0, 0, 0);
+            }
+        }
 
-    // recall the Timer function after 20 seconds (20,000 milliseconds)
-    glutTimerFunc(500,Timer, 0);
+
+        // ask OpenGL to recall the display function to reflect the changes on the window
+        glutPostRedisplay();
+
+        // recall the Timer function after 20 seconds (20,000 milliseconds)
+        glutTimerFunc(500, Timer, 0);
+    }
 }
+void drawCircle(int x, int y, float r){
+    glPushMatrix();
+    glTranslatef(x, y, 0);
+    GLUquadric* quadObj = gluNewQuadric();
+    gluDisk(quadObj, 0, r, 50, 50);
+    glPopMatrix();
+}
+void drawHeart(int x, int y) {
+    glColor3f(1, 0, 0);
+    drawCircle(x - 6, y, 7);
+    drawCircle(x + 6, y,7);
+    glColor3f(1, 0, 0);
+    glBegin(GL_TRIANGLES);
+    glVertex2f(x, y - 14);
+    glVertex2f(x - 12.5, y - 4);
+    glVertex2f(x + 12.5, y - 4);
+    glEnd();
 
+
+}
 void resetGame() {
      heightBullet = 10;
      widthBullet = 8;
@@ -330,8 +358,17 @@ bool collisions(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2) 
 
 }
 void Display() {
-    if(!resetGame2){glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT);
 
+ 
+    if(!resetGame2){
+        int xShift = 0;
+        for (int i = 0; i < playerLives; i++) {
+            drawHeart(120 - xShift, 765);
+            xShift += 30;
+
+
+        }
     glPushMatrix();
     glTranslatef(translationSpaceshipX, translationSpaceshipY, 0);
     drawspaceship();
